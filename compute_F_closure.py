@@ -69,7 +69,7 @@ def is_candidate_key(k, R, Fplus):
 def compute_candidate(R, Fplus):
     candidate_keys = []
     keys = get_superkeys(R, Fplus)
-    print (keys)
+    # print (keys)
     for k in keys:
         if is_candidate_key(k, R, Fplus):
             candidate_keys.append(k)
@@ -84,7 +84,7 @@ def norm_format(r):
         q.sort()
         return ''.join(q)
 
-def output(Fplus, candidate_keys):
+def output(Fplus, candidate_keys, fc):
     fplusfile = open('Fclosure.txt', 'w')
     for k, v in Fplus:
         fplusfile.write("$%s \\rightarrow %s$\\\\\n" % (k, v))
@@ -95,6 +95,11 @@ def output(Fplus, candidate_keys):
         candidatefile.write("$%s$\\\\\n" % k)
     candidatefile.close()
 
+    fcfile = open('canonical_cover.txt', 'w')
+    for k,v in fc:
+        fcfile.write("%s \\rightarrow %s, " % (k, v))
+    fcfile.close()
+
 def union_rule(Fc):
     fcdict = {}
     for k, v in Fc:
@@ -103,14 +108,13 @@ def union_rule(Fc):
         fcdict[k].append(v)
     nfcdict = {}
     for k, v in fcdict.items():
-        nv = set(''.join(v))
-        nv = list(nv)
-        nfcdict[k] = v
+        nv = ''.join(set(''.join(v)))
+        nfcdict[k] = nv
     return nfcdict.items()
 
 def test_extraneous_attr_lhs(alpha, k, v, Fc):
     remain = ''.join(set(k) - set(alpha))
-    print ('remain:', remain)
+    # print ('remain:', remain)
     remain_closure = attr_closure(remain, Fc)
     if set(remain_closure) >= set(v):
         return True
@@ -119,31 +123,42 @@ def test_extraneous_attr_lhs(alpha, k, v, Fc):
 
 
 def test_extraneous_attr_rhs(beta, k, v, Fc): 
-    Fdot = set(Fc) - set((k,v)) + set((k, ''.join(set(v)-set(beta))))
-    Fdot = dict(Fdot)
+    # print (Fc)
+    # print (beta, k, v)
+    Fdot = (set(Fc) - set([(k,v)])) | set([(k, ''.join(set(v)-set(beta)))])
+    # print (Fdot)
     k_closure = attr_closure(k, Fdot)
-    
+    if beta in k_closure:
+        return True
+    else:
+        return False
 
 
 def delete_extraneous_attr(Fc):
     nfc = []
+    change = False
     for k,v in Fc:
         nk = ''
         for alpha in k:
             if not test_extraneous_attr_lhs(alpha, k, v, Fc):
                 nk += alpha
+            else:
+                change = True
         nv = ''
         for beta in v:
-            if not test_extraneous_attr_rhs(beta, k, v, Fc)
+            if not test_extraneous_attr_rhs(beta, k, v, Fc):
                 nv += beta
+            else:
+                change = True
         nfc.append((nk, nv))
-    return nfc
+    return nfc, change
 
 def compute_canonical_cover(R, F):
     Fc = F
     change = True
     while change:
         Fc = union_rule(Fc)
+        print (Fc)
         Fc, change = delete_extraneous_attr(Fc)
     return Fc
 
@@ -174,6 +189,6 @@ def main():
     candidate_keys = compute_candidate(R, Fplusdict)
 
     Fc = compute_canonical_cover(R, F)
-    output(Fplus, candidate_keys)
+    output(Fplus, candidate_keys, Fc)
 
 main()
