@@ -158,7 +158,7 @@ def compute_canonical_cover(R, F):
     change = True
     while change:
         Fc = union_rule(Fc)
-        print (Fc)
+        # print (Fc)
         Fc, change = delete_extraneous_attr(Fc)
     return Fc
 
